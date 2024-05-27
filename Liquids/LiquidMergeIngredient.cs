@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Terraria.ID;
 using Terraria;
 
-namespace LiquidsLib.Liquids {
+namespace Terraria.ModLoader {
 	public abstract class LiquidMergeIngredient {
 		public Tile Tile { get; private set; }
 		public int X { get; private set; }
@@ -16,6 +16,9 @@ namespace LiquidsLib.Liquids {
 		public byte LiquidAmountToConsume = 0;
 		internal bool BeingUsedForMerge { get; private set; } = false;
 		internal void SetBeingUsedForMerge() {
+			if (LiquidAmount <= 0)
+				return;
+
 			BeingUsedForMerge = true;
 			LiquidAmountToConsume = LiquidAmount;
 		}

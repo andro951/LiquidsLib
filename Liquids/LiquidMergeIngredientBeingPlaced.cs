@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Terraria.ID;
 
-namespace LiquidsLib.Liquids {
+namespace Terraria.ModLoader {
 	public class LiquidMergeIngredientBeingPlaced : LiquidMergeIngredient {
 		public override byte LiquidAmount => liquidAmount;
 		private byte liquidAmount;

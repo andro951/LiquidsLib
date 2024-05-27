@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using Terraria.ID;
 using Terraria;
 
-namespace LiquidsLib.Liquids {
+namespace Terraria.ModLoader {
 	public class LiquidMerge {
-		private enum MergeType {
+		public enum MergeType {
 			None,
 			TopMerge,
 			BottomMerge,
@@ -58,7 +58,7 @@ namespace LiquidsLib.Liquids {
 		public Tile MergeTargetTile { get; private set; }
 		public List<LiquidMergeIngredient> LiquidMergeIngredients { get; private set; } = null;
 		internal bool MergeAllowed => LiquidMergeIngredients != null && LiquidMergeIngredients.Count > 0;
-		private MergeType mergeType = MergeType.None;
+		public MergeType mergeType = MergeType.None;
 
 		/// <summary>
 		/// Check if a merge will occur and set the MergeTargetTile and LiquidMergeIngredients.
@@ -92,7 +92,7 @@ namespace LiquidsLib.Liquids {
 			//Check for bottom merge (ThisTile merging onto DownTile)
 			Y = downLiquid.Y;//Bottom merges cause a merge to happen at the DownTile, using ThisTile as an ingredient, so change the target of the merge to the DownTile.
 			thisLiquid.CheckBeingUsedForMerge(X, Y, DownTile, ThisTile);
-			bool bottomMerge = thisLiquid.CausingMerge(downLiquid.LiquidType);
+			bool bottomMerge = downLiquid.LiquidAmount > 0 && thisLiquid.CausingMerge(downLiquid.LiquidType);
 			if (bottomMerge) {
 				mergeType = MergeType.BottomMerge;
 				LiquidMergeIngredients = new();
@@ -100,7 +100,7 @@ namespace LiquidsLib.Liquids {
 				LiquidMergeIngredients.Add(downLiquid);
 
 				if (thisLiquid.BeingUsedForMerge)
-					LiquidMergeIngredients.Add(downLiquid);
+					LiquidMergeIngredients.Add(thisLiquid);
 
 				return true;
 			}

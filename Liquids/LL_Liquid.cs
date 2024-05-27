@@ -12,6 +12,7 @@ using Terraria.GameContent.Liquid;
 using Microsoft.CodeAnalysis.Emit;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
+using LiquidsLib;
 
 namespace LiquidsLib.Liquids {
 	public static class LL_Liquid {
@@ -539,7 +540,7 @@ namespace LiquidsLib.Liquids {
 
 			c.MarkLabel(label);
 		}
-		public static void LogSimple(this string s) => ModContent.GetInstance<LiquidsLib>().Logger.Info(s);
+		public static void LogSimple(this string s) => ModContent.GetInstance<LLMod>().Logger.Info(s);
 		/*
 		private static bool MergeLiquidsShouldDoVanilla(int x, int y, int thisLiquidType) {
 			if (!WorldGen.InWorld(x, y, 1))

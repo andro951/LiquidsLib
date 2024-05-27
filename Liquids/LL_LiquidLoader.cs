@@ -13,7 +13,7 @@ using MonoMod.Utils;
 using System.Reflection;
 using System.Linq.Expressions;
 
-namespace LiquidsLib.Liquids {
+namespace Terraria.ModLoader {
     public static class LL_LiquidLoader {
         private static bool loaded = false;
         private static int nextLiquid = LiquidID.Count;
