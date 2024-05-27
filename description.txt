@@ -1,0 +1,18 @@
+LiquidLib is a library mod created by andro951.  It doesn't add anything to the game by itself.
+
+Allows mod creators to interact with liquid movement and liquid merges by making a GlobalLiquid class (exact same as any TMod Global class)
+
+Example:
+	Examples.ExampleGlobalLiquid.cs
+	Shows off preventing liquids from moving or merging when near ancient copper bricks.
+
+Please let me know if you'd like to make use of this mod or need help.
+
+Please give us your feedback!!!!!!
+https://discord.gg/mPywEhyV9b
+
+Ko-Fi:
+https://ko-fi.com/andro951
+
+Patreon:
+https://www.patreon.com/andro951

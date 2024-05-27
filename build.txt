@@ -1,0 +1,3 @@
+displayName = LiquidsLib
+author = andro951
+version = 0.1.0.1

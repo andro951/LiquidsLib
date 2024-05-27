@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- Import tModLoader mod properties -->
+	<Import Project="..\tModLoader.targets" />
+
+	<!-- General -->
+	<PropertyGroup>
+		
+	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="icon_workshop.png" />
+	  <None Remove="Screenshots\LiquidsExampleScreenshot.PNG" />
+	</ItemGroup>
+
+	<!-- References -->
+
+</Project>
