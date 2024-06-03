@@ -8,7 +8,7 @@ using Terraria;
 
 namespace Terraria.ModLoader {
 	public class LiquidMerge {
-		public enum MergeType {
+		public enum MergeStyle {
 			None,
 			TopMerge,
 			BottomMerge,
@@ -39,12 +39,12 @@ namespace Terraria.ModLoader {
 		public int LiquidMergeType = LiquidMergeDefaultType;
 		private const int LiquidMergeDefaultType = -1;
 
-		internal void GetLiquidMergeTypes() {
+		public void GetLiquidMergeTypes() {
 			Liquid.GetLiquidMergeTypes(ThisLiquidType, out LiquidMergeTileType, out LiquidMergeType, LiquidsNearby[LiquidID.Water], LiquidsNearby[LiquidID.Lava], LiquidsNearby[LiquidID.Honey], LiquidsNearby[LiquidID.Shimmer]);
 		}
 		public int X { get; private set; }
 		public int Y { get; private set; }
-		internal int ThisLiquidType => thisLiquid.Tile.LiquidType;
+		internal int ThisLiquidType => thisLiquid?.Tile.LiquidType ?? (MergeAllowed ? LiquidMergeIngredients[0].LiquidType : 0);
 		private LiquidMergeIngredient thisLiquid;
 		private LiquidMergeIngredient leftLiquid;
 		private LiquidMergeIngredient upLiquid;
@@ -58,21 +58,23 @@ namespace Terraria.ModLoader {
 		public Tile MergeTargetTile { get; private set; }
 		public List<LiquidMergeIngredient> LiquidMergeIngredients { get; private set; } = null;
 		internal bool MergeAllowed => LiquidMergeIngredients != null && LiquidMergeIngredients.Count > 0;
-		public MergeType mergeType = MergeType.None;
+		public MergeStyle mergeType = MergeStyle.None;
+		public bool SolidTile {  get; private set; }
+		public string Context { get; private set; } = "";
 
 		/// <summary>
 		/// Check if a merge will occur and set the MergeTargetTile and LiquidMergeIngredients.
 		/// Shouldn't be called for a PlaceMerge.
 		/// </summary>
 		/// <returns>true if a merge will occur.</returns>
-		private bool DetermineMergeType() {
+		private bool DetermineMergeStyle() {
 			//Check for top merge (Merge onto ThisTile from LeftTile, UpTile or RightTile)
-			leftLiquid.CheckBeingUsedForMerge(X, Y, ThisTile, LeftTile);
-			rightLiquid.CheckBeingUsedForMerge(X, Y, ThisTile, RightTile);
-			upLiquid.CheckBeingUsedForMerge(X, Y, ThisTile, UpTile);
+			leftLiquid.CheckBeingUsedForMerge(X, Y, ThisTile, LeftTile, SolidTile);
+			rightLiquid.CheckBeingUsedForMerge(X, Y, ThisTile, RightTile, SolidTile);
+			upLiquid.CheckBeingUsedForMerge(X, Y, ThisTile, UpTile, SolidTile);
 			bool topMerge = leftLiquid.CausingMerge(ThisLiquidType) || rightLiquid.CausingMerge(ThisLiquidType) || upLiquid.CausingMerge(ThisLiquidType);
 			if (topMerge) {
-				mergeType = MergeType.TopMerge;
+				mergeType = MergeStyle.TopMerge;
 				LiquidMergeIngredients = new();
 				thisLiquid.SetBeingUsedForMerge();
 				LiquidMergeIngredients.Add(thisLiquid);
@@ -91,10 +93,16 @@ namespace Terraria.ModLoader {
 
 			//Check for bottom merge (ThisTile merging onto DownTile)
 			Y = downLiquid.Y;//Bottom merges cause a merge to happen at the DownTile, using ThisTile as an ingredient, so change the target of the merge to the DownTile.
-			thisLiquid.CheckBeingUsedForMerge(X, Y, DownTile, ThisTile);
-			bool bottomMerge = downLiquid.LiquidAmount > 0 && thisLiquid.CausingMerge(downLiquid.LiquidType);
+			bool bottomMerge = false;
+			//thisLiquid will always have a LiquidAmount > 0 because it's a condition for it being called.
+			//Bottom Merge uses the downLiquid as the source, but hasn't been checked if it has a liquid yet.  Prevents merging liquids with downLiquid of water (0) with 0 amount.
+			if (downLiquid.LiquidAmount > 0) {
+				thisLiquid.CheckBeingUsedForMerge(X, Y, DownTile, ThisTile, WorldGen.SolidTile(X, Y));
+				bottomMerge = thisLiquid.CausingMerge(downLiquid.LiquidType);
+			}
+			
 			if (bottomMerge) {
-				mergeType = MergeType.BottomMerge;
+				mergeType = MergeStyle.BottomMerge;
 				LiquidMergeIngredients = new();
 				downLiquid.SetBeingUsedForMerge();
 				LiquidMergeIngredients.Add(downLiquid);
@@ -149,14 +157,14 @@ namespace Terraria.ModLoader {
 				liquidMergeIngredient.DeleteLiquid();
 			}
 		}
-		public bool MergeTargetTileWillBeDestroyedByMerge => mergeType == MergeType.TopMerge && WillBeDestroyedByObsidianKill || mergeType == MergeType.BottomMerge && (WillBeDestroyedByCut || WillBeDestroyedByObsidianKill);
+		public bool MergeTargetTileWillBeDestroyedByMerge => mergeType == MergeStyle.TopMerge && WillBeDestroyedByObsidianKill || mergeType == MergeStyle.BottomMerge && (WillBeDestroyedByCut || WillBeDestroyedByObsidianKill);
 		private bool WillBeDestroyedByObsidianKill => MergeTargetTile.HasTile && Main.tileObsidianKill[MergeTargetTile.TileType];
 		private bool WillBeDestroyedByCut => ThisLiquidType != LiquidID.Water && Main.tileCut[MergeTargetTile.TileType];
 		private void TryKillMergeTargetTile() {
 			if (!MergeTargetTileWillBeDestroyedByMerge)
 				return;
 
-			if (mergeType == MergeType.BottomMerge && WillBeDestroyedByCut) {
+			if (mergeType == MergeStyle.BottomMerge && WillBeDestroyedByCut) {
 				WorldGen.KillTile(X, Y);
 				if (Main.netMode == 2)
 					NetMessage.SendData(17, -1, -1, null, 0, X, Y);
@@ -170,33 +178,39 @@ namespace Terraria.ModLoader {
 		}
 		private void PlaceMergeTile() {
 			switch (mergeType) {
-				case MergeType.TopMerge:
+				case MergeStyle.TopMerge:
 					if (!WorldGen.gen)
-						WorldGen.PlayLiquidChangeSound(liquidChangeType, X, Y);
+						WorldGen.PlayLiquidChangeSound(LiquidChangeType, X, Y);
 
 					WorldGen.PlaceTile(X, Y, LiquidMergeTileType, mute: true, forced: true);
 					WorldGen.SquareTileFrame(X, Y);
 					if (Main.netMode == 2)
-						NetMessage.SendTileSquare(-1, X - 1, Y - 1, 3, liquidChangeType);
+						NetMessage.SendTileSquare(-1, X - 1, Y - 1, 3, LiquidChangeType);
 					break;
-				case MergeType.BottomMerge:
+				case MergeStyle.BottomMerge:
+				case MergeStyle.None:
 					if (!Main.gameMenu)
-						WorldGen.PlayLiquidChangeSound(liquidChangeType, X, Y - 1);
+						WorldGen.PlayLiquidChangeSound(LiquidChangeType, X, Y);
 
 					WorldGen.PlaceTile(X, Y, LiquidMergeTileType, mute: true, forced: true);
 					WorldGen.SquareTileFrame(X, Y);
 					if (Main.netMode == 2)
-						NetMessage.SendTileSquare(-1, X - 1, Y - 1, 3, liquidChangeType);
+						NetMessage.SendTileSquare(-1, X - 1, Y - 1, 3, LiquidChangeType);
 					break;
-				case MergeType.PlaceMerge:
+				case MergeStyle.PlaceMerge:
 					WorldGen.PlaceTile(X, Y, LiquidMergeTileType, mute: true);
 					WorldGen.SquareTileFrame(X, Y);
 					if (Main.netMode != 0)
-						NetMessage.SendTileSquare(-1, X - 1, Y - 1, liquidChangeType);
+						NetMessage.SendTileSquare(-1, X - 1, Y - 1, LiquidChangeType);
 
 					break;
 			}
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="consumedLiquids"></param>
+		/// <returns>Returns false if TargetTile !Main.tileObsidianKill or !Main.tileObsidianKill.  Liquids will be consumed and nothing will happen if so.</returns>
 		public bool Merge(out Dictionary<int, int> consumedLiquids) {
 			TryKillMergeTargetTile();
 			consumedLiquids = new();
@@ -212,7 +226,7 @@ namespace Terraria.ModLoader {
 				}
 			}
 
-			if (MergeTargetTile.HasTile)
+			if (MergeTargetTile.HasTile)//TODO: Check IF this Needs to allow for tiles to be changed from one type to another by merging.  It might already work becasue of the kill tile.
 				return false;
 
 			LiquidMergeIngredient thisLiquidMergeIngredient = LiquidMergeIngredients[0];
@@ -281,7 +295,25 @@ namespace Terraria.ModLoader {
 			rightLiquid = new LiquidMergeIngredientTile(x + 1, y);
 			upLiquid = new LiquidMergeIngredientTile(x, y - 1);
 			downLiquid = new LiquidMergeIngredientTile(x, y + 1);
-			DetermineMergeType();
+			SolidTile = WorldGen.SolidTile(x, y);
+			DetermineMergeStyle();
+		}
+
+		/// <summary>
+		/// This constructor is for creating custom LiquidMerges.  To use it, you have to set up all of the ingredients manually.
+		/// If you don't want other mods to change the merge, you can only call Merge() and LL_Loader.OnMerge().
+		/// </summary>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="ingredients"></param>
+		/// <param name="context">Context is the way you check if it's "your" merge in the other hooks for performing specific logic with this merge.
+		///		Vanilla merges have a blank context, "".</param>
+		public LiquidMerge(int x, int y, IEnumerable<LiquidMergeIngredient> ingredients, string context = "") {
+			X = x;
+			Y = y;
+			LiquidMergeIngredients = ingredients.ToList();
+			Context = context;
+			SolidTile = WorldGen.SolidTile(x, y);
 		}
 
 		/// <summary>
@@ -301,7 +333,7 @@ namespace Terraria.ModLoader {
 			LiquidMergeIngredients.Add(thisLiquid);
 			liquidBeingPlaced.SetBeingUsedForMerge();
 			LiquidMergeIngredients.Add(liquidBeingPlaced);
-			mergeType = MergeType.PlaceMerge;
+			mergeType = MergeStyle.PlaceMerge;
 		}
 	}
 }

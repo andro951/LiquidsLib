@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis.Emit;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 using LiquidsLib;
+using System.Reflection;
 
 namespace LiquidsLib.Liquids {
 	public static class LL_Liquid {
@@ -25,6 +26,24 @@ namespace LiquidsLib.Liquids {
 			On_Liquid.LiquidCheck += On_Liquid_LiquidCheck;
 			On_WorldGen.PlaceLiquid += On_WorldGen_PlaceLiquid;
 			IL_LiquidRenderer.InternalPrepareDraw += IL_LiquidRenderer_InternalPrepareDraw;
+			On_Liquid.UpdateLiquid += On_Liquid_UpdateLiquid;
+		}
+		private static bool OneTimeLiquidBufferClear = true;
+		private static void On_Liquid_UpdateLiquid(On_Liquid.orig_UpdateLiquid orig) {
+			if (Main.netMode == NetmodeID.Server && OneTimeLiquidBufferClear) {
+				if (LiquidBuffer.numLiquidBuffer > 0 && Liquid.curMaxLiquid > LiquidBuffer.numLiquidBuffer + Liquid.numLiquid) {
+					for (int i = 0; i < LiquidBuffer.numLiquidBuffer; i++) {
+						Tile tile = Main.tile[Main.liquidBuffer[0].x, Main.liquidBuffer[0].y];
+						tile.CheckingLiquid = false;
+						Liquid.AddWater(Main.liquidBuffer[0].x, Main.liquidBuffer[0].y);
+						LiquidBuffer.DelBuffer(0);
+					}
+
+					OneTimeLiquidBufferClear = false;
+				}
+			}
+
+			orig();
 		}
 
 		private static void IL_LiquidRenderer_InternalPrepareDraw(ILContext il) {
@@ -104,8 +123,8 @@ namespace LiquidsLib.Liquids {
 			return false;
 		}
 		private static void On_Liquid_LiquidCheck(On_Liquid.orig_LiquidCheck orig, int x, int y, int thisLiquidType) {
-			if (WorldGen.SolidTile(x, y))
-				return;
+			//if (WorldGen.SolidTile(x, y))
+			//	return;
 
 			LiquidMerge liquidMerge = new(x, y);
 			liquidMerge.TryMerge();
@@ -116,7 +135,7 @@ namespace LiquidsLib.Liquids {
 			SettleWaterAt(originX, originY);
 			//orig(originX, originY);//Completely replace original
 		}
-
+		
 		private static void SettleWaterAt(int originX, int originY) {
 			Tile tile = Main.tile[originX, originY];
 			Liquid.tilesIgnoreWater(ignoreSolids: true);
@@ -341,6 +360,111 @@ namespace LiquidsLib.Liquids {
 		private static bool Shimmer(this Tile tile) => tile.LiquidType == LiquidID.Shimmer;
 
 		private static void IL_Liquid_Update(ILContext il) {
+			//TODO: Needs this:
+
+			/*
+			if (tile5.lava()) {
+				LavaCheck(x, y);
+				if (!quickFall) {
+					if (delay < 5) {
+						delay++;
+						return;
+					}
+
+					delay = 0;
+				}
+			}
+			else {
+				if (tile.lava())
+					AddWater(x - 1, y);
+
+				if (tile2.lava())
+					AddWater(x + 1, y);
+
+				if (tile3.lava())
+					AddWater(x, y - 1);
+
+				if (tile4.lava())
+					AddWater(x, y + 1);
+
+				if (tile5.honey()) {
+					HoneyCheck(x, y);
+					if (!quickFall) {
+						if (delay < 10) {
+							delay++;
+							return;
+						}
+
+						delay = 0;
+					}
+				}
+				else {
+					if (tile.honey())
+						AddWater(x - 1, y);
+
+					if (tile2.honey())
+						AddWater(x + 1, y);
+
+					if (tile3.honey())
+						AddWater(x, y - 1);
+
+					if (tile4.honey())
+						AddWater(x, y + 1);
+
+					if (tile5.shimmer()) {
+						ShimmerCheck(x, y);
+					}
+					else {
+						if (tile.shimmer())
+							AddWater(x - 1, y);
+
+						if (tile2.shimmer())
+							AddWater(x + 1, y);
+
+						if (tile3.shimmer())
+							AddWater(x, y - 1);
+
+						if (tile4.shimmer())
+							AddWater(x, y + 1);
+					}
+				}
+			}
+			*/
+
+			//for (int i = 1; i < LiquidLoader.LiquidCount; i++) {
+			//	if (tile5.LiquidType == i) {
+			//		if (tile5.LiquidType == LiquidID.Lava) {
+			//			LavaCheck(x, y);
+			//		}
+			//		else {
+			//			LiquidCheck(x, y, i);
+			//		}
+
+			//		if (!quickFall) {
+			//			if (delay < LiquidLoader.liquidProperties[i].FallDelay) {
+			//				delay++;
+			//				return;
+			//			}
+
+			//			delay = 0;
+			//		}
+			//		break;
+			//	}
+			//	else {
+			//		if (tile.LiquidType == i && LiquidLoader.AllowMergeLiquids(x, y, tile5, x - 1, y, tile))
+			//			AddWater(x - 1, y);
+
+			//		if (tile2.LiquidType == i && LiquidLoader.AllowMergeLiquids(x, y, tile5, x + 1, y, tile2))
+			//			AddWater(x + 1, y);
+
+			//		if (tile3.LiquidType == i && LiquidLoader.AllowMergeLiquids(x, y, tile5, x, y - 1, tile3))
+			//			AddWater(x, y - 1);
+
+			//		if (tile4.LiquidType == i && LiquidLoader.AllowMergeLiquids(x, y, tile5, x, y + 1, tile4))
+			//			AddWater(x, y + 1);
+			//	}
+			//}
+
 			var c = new ILCursor(il);
 
 			//// if ((!tile4.nactive() || !Main.tileSolid[tile4.type] || Main.tileSolidTop[tile4.type]) && (tile4.liquid <= 0 || tile4.liquidType() == tile5.liquidType()) && tile4.liquid < byte.MaxValue)

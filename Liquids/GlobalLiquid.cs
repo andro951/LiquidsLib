@@ -60,7 +60,9 @@ public abstract class GlobalLiquid : ModType {
 	public virtual void PostUpdate(int x, int y, int liquidType, Liquid liquid, Tile thisTile, Tile left, Tile right, Tile up, Tile down) { }
 
 	/// <summary>
-	/// Return false to prevent liquids from merging.  Return true by default.  This is called when checking if the liquid at Main.tile[x, y] is being updated.
+	/// Return false to prevent liquids from merging.  Return null by default.  Return true to force a merge to occur.
+	/// If tileSolid or tileSolid2 and returning null, a merge won't occur.  Vanilla doesn't process merges for liquids that exist on the same tile as solid tiles.
+	/// This is called when checking if the liquid at Main.tile[x, y] is being updated.
 	/// If true is returned, the liquid at Main.tile[x2, y2] will be added to Main.liquid to be updated.
 	/// </summary>
 	/// <param name="x">x tile coordinate of the tile being checked</param>
@@ -69,11 +71,12 @@ public abstract class GlobalLiquid : ModType {
 	/// <param name="x2">x tile coordinate of the liquid trying to merge with this tile</param>
 	/// <param name="y2">y tile coordinate of the liquid trying to merge with this tile</param>
 	/// <param name="tile2">Tile at Main.tile[x2, y2]</param>
-	/// <returns></returns>
-	public virtual bool AllowMergeLiquids(int x, int y, Tile tile, int x2, int y2, Tile tile2) => true;
+	/// <returns>null for vanilla behavior.</returns>
+	public virtual bool? AllowMergeLiquids(int x, int y, Tile tile, bool tileSolid, int x2, int y2, Tile tile2, bool tileSolid2) => null;
 
 	/// <summary>
 	/// Allows you to change the resulting tile created when liquids merge together.
+	/// Merges are checked for even if there is only 1 ingredient liquid.  If doing typical 2+ liquid merges, make sure to check for each liquid type.
 	/// </summary>
 	/// <param name="x">x tile coordinate of the tile being merged onto.</param>
 	/// <param name="y">y tile coordinate of the tile being merged onto.</param>

@@ -110,11 +110,12 @@ namespace Terraria.ModLoader {
             }
         }
 
-        private delegate bool DelegateAllowMergeLiquids(int x, int y, Tile tile, int x2, int y2, Tile tile2);
+        private delegate bool? DelegateAllowMergeLiquids(int x, int y, Tile tile, bool tileSolid, int x2, int y2, Tile tile2, bool tileSolid2);
         private static DelegateAllowMergeLiquids[] HookAllowMergeLiquids;
 
-		public static bool AllowMergeLiquids(int x, int y, Tile tile, int x2, int y2, Tile tile2)
+		public static bool AllowMergeLiquids(int x, int y, Tile tile, bool tileSolid, int x2, int y2, Tile tile2, bool tileSolid2)
         {
+            bool? result = null;
             //AllowMergeLiquids is only called when there is a liquid at Main.tile[x, y] and Main.tile[x2, y2] and they will always be different types.
             //if (GetLiquid(tile.LiquidType)?.AllowMergeLiquids(x, y, tile, x2, y2, tile2) == false)
             //	return false;
@@ -124,15 +125,18 @@ namespace Terraria.ModLoader {
 
             foreach (var hook in HookAllowMergeLiquids)
             {
-                bool? shouldMerge = hook(x, y, tile, x2, y2, tile2);
-                if (shouldMerge.HasValue)
-                {
-                    if (!shouldMerge.Value)
-                        return false;
+                bool? shouldMerge = hook(x, y, tile, tileSolid, x2, y2, tile2, tileSolid2);
+                if (shouldMerge.HasValue) {
+                    if (!shouldMerge.Value) {
+						return false;
+					}
+                    else {
+                        result = shouldMerge;
+                    }
                 }
             }
 
-            return true;
+            return result ?? !tileSolid && !tileSolid2;
         }
 
         private delegate void DelegateGetLiquidMergeTypes(int x, int y, int type, bool[] liquidNearby, ref int liquidMergeTileType, ref int liquidMergeType, LiquidMerge liquidMerge);

@@ -133,8 +133,8 @@ namespace LiquidsLib.Examples {
 			return null;
 		}
 
-		public override bool AllowMergeLiquids(int x, int y, Tile tile, int x2, int y2, Tile tile2) {
-			return ExampleBlockLiquidInteractionsAllowed(x, y);
+		public override bool? AllowMergeLiquids(int x, int y, Tile tile, bool tileSolid, int x2, int y2, Tile tile2, bool tileSolid2) {
+			return ExampleBlockLiquidInteractionsAllowed(x, y) ? null : false;
 		}
 		public override bool ShouldDeleteLiquid(LiquidMerge liquidMerge) {
 			return ExampleBlockLiquidInteractionsAllowed(liquidMerge.X, liquidMerge.Y);
